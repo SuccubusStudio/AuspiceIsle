@@ -1,0 +1,179 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+    color: #333; /* 預設文字顏色 */
+    background-color: black; /* 新增這一行 */
+}
+
+.hero {
+    position: relative;
+    width: 100%;
+    height: 100vh; /* 佔據整個 viewport 高度 */
+    overflow: hidden; /* 隱藏超出影片範圍的部分 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white; /* Hero 區塊文字顏色 */
+}
+
+#background-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 讓影片填滿容器，可能會裁剪 */
+    z-index: -1; /* 讓影片在文字下方 */
+}
+
+.hero-text {
+    position: relative;
+    padding: 20px;
+}
+
+.hero-text h1 {
+    font-size: 3em;
+    margin-bottom: 10px;
+}
+
+.hero-text p {
+    font-size: 1.2em;
+}
+
+.hero {
+    position: relative;
+    width: 100%;
+    height: 100vh; /* 佔據整個 viewport 高度 */
+    overflow: hidden; /* 隱藏超出影片範圍的部分 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white; /* Hero 區塊文字顏色 */
+}
+
+
+.image-gallery {
+    display: flex;
+    flex-direction: column;
+    position: relative; /* 為了讓圖片填滿連結 */
+}
+
+.image-gallery img {
+    width: 100%;
+    display: block;
+}
+
+.gallery-item {
+    position: relative; /* 讓圖片填滿連結 */
+    display: block; /* 讓連結佔滿空間 */
+}
+
+.gallery-item:hover {
+    opacity: 1; /* 稍微變透明 */
+}
+
+
+
+.item-info {
+    position: absolute; /* 絕對定位，放在圖片左下角 */
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.7); /* 半透明黑色背景 */
+    color: white;
+    padding: 10px;
+    font-size: 1em;
+}
+
+.item-info a {
+    color: white;
+    text-decoration: none; /* 移除連結底線 */
+}
+
+.item-info a:hover {
+    text-decoration: underline; /* 滑鼠移上去時加上底線 */
+}
+
+
+
+.people-section {
+    display: flex;
+    justify-content: space-around; /* 平均分配人物照片之間的空間 */
+    padding: 20px;
+    text-align: center;
+}
+
+.person {
+    /* cursor: pointer;  移除 cursor: pointer; 因為我們不再需要點擊 */
+    position: relative; /* 為了 speech-bubble 的定位 */
+}
+
+.person img {
+    width: 100px; /* 設定照片的基本寬度，你可以調整 */
+    height: 100px;
+    border-radius: 50%; /* 讓照片變成圓形 */
+    object-fit: cover; /* 確保圖片在圓形容器中不變形 */
+    transition: opacity 0.3s ease-in-out; /* 新增 opacity 動畫效果 */
+}
+
+.person img:hover {
+    opacity: 0.7; /* 滑鼠移上去時，照片變淡 */
+}
+
+.speech-bubble {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    width: 300px;
+    padding: 10px;
+    border-radius: 5px;
+    bottom: 120%; /* 預設在照片上方 */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0; /* 預設隱藏 */
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+}
+
+.speech-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+.person.active .speech-bubble {
+    opacity: 1;
+    visibility: visible;
+}
+
+.footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 0.8em;
+    color: #777;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px; /* Logo 和文字之間的間距 */
+}
+
+
+.end {
+    position: relative;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white; /* Hero 區塊文字顏色 */
+}
+
+.footer img {
+    height: 30px; /* 調整 Logo 的高度 */
+}
