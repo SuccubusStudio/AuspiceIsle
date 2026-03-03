@@ -3,186 +3,856 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuspiceIsle</title>
-    <link rel="stylesheet" href="style.css">
-   <link rel="icon" href="icon.ico">
+    <title>Tactical Geo-System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* 基礎字體與無選取設定 */
+        body {
+            font-family: 'Rajdhani', 'Noto Sans TC', sans-serif;
+            font-weight: 600;
+            user-select: none;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* 遊戲畫面容器，滿版自適應設定 */
+        #game-screen {
+            background-color: #e8a81a;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            padding: 3% 4%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 頂部標題底線 */
+        .title-underline {
+            border-bottom: 1px solid #1a1a1a;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.2rem;
+            width: 100%;
+        }
+
+        /* 區域名稱切換器 */
+        .district-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #1a1a1a;
+            padding-bottom: 0.2rem;
+            margin-bottom: 0.3rem;
+        }
+        .district-arrow {
+            color: #1a1a1a;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .district-arrow:hover, .district-arrow:active {
+            color: white;
+        }
+
+        /* 選單項目樣式 */
+        .menu-item-box {
+            background-color: #313134;
+            border: 1px solid #9aa0aa;
+            color: white;
+            padding: 0.1rem 0.3rem;
+            display: flex;
+            align-items: center;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            text-shadow: 1px 1px 0 #000;
+            transition: all 0.2s ease;
+            min-height: 1.6rem;
+        }
+
+        /* 側邊小方塊 (按鈕指示器) */
+        .menu-indicator-box {
+            background-color: #8e939f;
+            border: 1px solid #bcc0c9;
+            width: 1.1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-left: 0.2rem;
+        }
+
+        .indicator-core {
+            width: 50%;
+            height: 50%;
+            background-color: #b0b4be;
+            border-top: 1px solid #e0e2e8;
+            border-left: 1px solid #e0e2e8;
+            border-bottom: 1px solid #6a6f7a;
+            border-right: 1px solid #6a6f7a;
+        }
+
+        /* 選中狀態特效 */
+        .menu-item.active .menu-item-box {
+            color: #e8a81a;
+            border-color: #fff;
+        }
+        .menu-item.active .indicator-core {
+            background-color: #fff;
+            border-color: #fff;
+            animation: blink 0.8s infinite alternate;
+        }
+
+        @keyframes blink {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
+
+        /* 訊息框標籤 */
+        .message-tab {
+            background-color: #313134;
+            border: 1px solid #9aa0aa;
+            border-bottom: none;
+            color: white;
+            display: inline-block;
+            padding: 0.1rem 0.6rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            border-top-left-radius: 4px;
+            border-top-right-radius: 4px;
+            position: relative;
+            top: 1px;
+            z-index: 10;
+        }
+
+        /* 訊息框主體 */
+        .message-body {
+            background-color: #313134;
+            border: 1px solid #9aa0aa;
+            color: white;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            min-height: 60px;
+            position: relative;
+            z-index: 5;
+            text-shadow: 1px 1px 0 #000;
+            letter-spacing: 0.05em;
+        }
+
+        /* 底部操作說明 */
+        .footer-text {
+            font-size: 0.7rem;
+            color: #1a1a1a;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.4rem;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+        }
+        
+        .footer-text span.divider {
+            color: #1a1a1a;
+            margin: 0 0.4rem;
+        }
+
+        /* =========================================
+           3D 地圖與高塔特效區域 
+           ========================================= */
+        .map-wrapper {
+            position: absolute;
+            top: 45%;
+            left: 50%; /* 改用 left 基準來定位，避開右側巨大的影片 */
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            z-index: 1;
+            opacity: 0.6;
+            transition: all 0.5s ease;
+            overflow: visible;
+        }
+
+        .map-3d-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            perspective: 1200px;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease;
+            will-change: transform, opacity;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .map-3d-container.active { transform: translateX(0) scale(1); opacity: 1; z-index: 2; }
+        .map-3d-container.prev { transform: translateX(-50vw) scale(0.6); opacity: 0; z-index: 1; }
+        .map-3d-container.next { transform: translateX(50vw) scale(0.6); opacity: 0; z-index: 1; }
+
+        /* =========================================
+           即時影像 & 統計數據 面板
+           ========================================= */
+        .video-feed-wrapper {
+            position: absolute;
+            top: 4%;
+            right: 4%;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+
+        #stats-panel {
+            position: absolute;
+            top: calc(4% + 160px); 
+            right: 4%;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            pointer-events: none;
+            gap: 0.3rem;
+        }
+
+        /* 統一的戰術外框 */
+        .video-box {
+            border: 1px solid #1a1a1a;
+            background: rgba(0, 0, 0, 0.75); 
+            backdrop-filter: blur(4px);
+            padding: 3px;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity 0.3s ease 0.4s, transform 0.3s ease 0.4s;
+            box-shadow: 4px 4px 0 rgba(26,26,26,0.3);
+        }
+
+        .video-screen {
+            width: auto; height: auto;
+            max-width: 180px; max-height: 120px;
+            object-fit: contain;
+            /* 移除了戰術濾鏡，保持影片原始乾淨的色彩 */
+        }
+
+        .video-label {
+            font-size: 0.75rem;
+            color: #1a1a1a;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-bottom: 1px solid #1a1a1a;
+            padding-bottom: 2px;
+            margin-bottom: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease 0.4s;
+        }
+
+        /* 聯動顯示動畫 */
+        .video-feed-wrapper.active .video-box,
+        .video-feed-wrapper.active .video-label,
+        #stats-panel.active .video-box,
+        #stats-panel.active .video-label {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* 播報員頭像區域 (COMM) */
+        .avatar-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+        .avatar-box {
+            background-color: #313134;
+            border: 1px solid #9aa0aa;
+            padding: 3px;
+            width: 80px;
+            height: 80px;
+            position: relative;
+            box-shadow: 3px 3px 0 rgba(26,26,26,0.4);
+        }
+        .avatar-video {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            /* 移除了戰術濾鏡，保持原始乾淨畫面 */
+        }
+        .scanlines {
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0),
+                rgba(0, 0, 0, 0) 1px,
+                rgba(0, 0, 0, 0.2) 1px,
+                rgba(0, 0, 0, 0.2) 3px
+            );
+        }
+
+        /* 動態追蹤黑線 */
+        #dynamic-line-canvas {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 15; 
+        }
+        .tracking-line {
+            fill: none; stroke: #1a1a1a; stroke-width: 1.5px;
+            stroke-dasharray: 2000; stroke-dashoffset: 2000; transition: none; 
+        }
+        .tracking-line.active {
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .tracking-dot { fill: #1a1a1a; opacity: 0; transition: opacity 0.2s; }
+        .tracking-dot.active { opacity: 1; }
+        .tracking-anchor {
+            fill: #e8a81a; stroke: #1a1a1a; stroke-width: 1.5px;
+            opacity: 0; transition: opacity 0.2s ease 0.4s; 
+        }
+        .tracking-anchor.active { opacity: 1; }
+
+        /* =========================================
+           PC 版響應式設定 (大幅放大尺寸、重新規劃佔比)
+           ========================================= */
+        @media (min-width: 768px) {
+            .menu-item-box { font-size: 0.9rem; padding: 0.2rem 0.5rem; min-height: 1.8rem; }
+            .menu-indicator-box { width: 1.3rem; }
+            .message-tab { font-size: 0.9rem; padding: 0.2rem 0.8rem 0.1rem 0.4rem; }
+            .message-body { font-size: 1rem; padding: 0.8rem 1rem; min-height: 80px; }
+            .footer-text { font-size: 0.8rem; justify-content: flex-start; }
+            
+            /* 3D地圖巨型化，並偏向左中，讓出右邊空間 */
+            .map-wrapper { top: 48%; left: 42%; transform: translate(-50%, -50%); width: 650px; height: 650px; z-index: 5; opacity: 1; }
+            
+            /* 影片巨型化 (~3倍大) */
+            .video-screen { max-width: 450px; max-height: 280px; } 
+            .video-label { font-size: 0.9rem; margin-bottom: 6px; }
+            
+            /* 統計面板跟著拉寬，並往下推移避開巨大影片 */
+            #stats-panel { top: calc(4% + 320px); width: 280px; gap: 0.5rem; } 
+            
+            /* 頭像巨型化 */
+            .avatar-box { width: 110px; height: 110px; } 
+        }
+
+        .map-3d { width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(60deg) rotateZ(0deg); animation: rotateMap 35s linear infinite; }
+        .map-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
+        .map-layer:nth-child(1) { transform: translateZ(0px); }
+        .map-layer:nth-child(2) { transform: translateZ(4px); }
+        .map-layer:nth-child(3) { transform: translateZ(8px); }
+        .map-layer:nth-child(4) { transform: translateZ(12px); }
+        .map-layer:nth-child(5) { transform: translateZ(16px); }
+
+        @keyframes rotateMap {
+            0% { transform: rotateX(60deg) rotateZ(0deg); }
+            100% { transform: rotateX(60deg) rotateZ(360deg); }
+        }
+
+        .tower-container { position: absolute; width: 0; height: 0; transform: translateZ(17px); transform-style: preserve-3d; transition: all 0.5s ease; }
+        .tower-plane { position: absolute; bottom: 0; left: -20px; width: 40px; height: 150px; transform-origin: bottom center; overflow: visible; }
+        .plane-1 { transform: rotateX(-90deg); }
+        .plane-2 { transform: rotateX(-90deg) rotateY(90deg); }
+        .tower-plane polygon { fill: rgba(255, 255, 255, 0.1); stroke: #555; transition: all 0.3s ease; }
+        .tower-plane line { stroke: #555; transition: all 0.3s ease; }
+        .tower-container.active { filter: drop-shadow(0 0 15px rgba(232, 168, 26, 0.8)); }
+        .tower-container.active .tower-plane polygon { fill: rgba(232, 168, 26, 0.4); stroke: #fff; }
+        .tower-container.active .tower-plane line { stroke: #e8a81a; stroke-width: 1.5px;}
+
+        .map-point { transition: all 0.3s ease; transform-origin: center; }
+        .map-point.active { fill: #e8a81a; r: 6; filter: drop-shadow(0 0 8px #fff); stroke: #000; stroke-width: 1.5px; }
+
+        #menu-container { max-height: 55vh; overflow-y: auto; padding-right: 6px; }
+        #menu-container::-webkit-scrollbar { width: 4px; }
+        #menu-container::-webkit-scrollbar-track { background: rgba(26, 26, 26, 0.5); border-radius: 2px; }
+        #menu-container::-webkit-scrollbar-thumb { background: #8e939f; border-radius: 2px; }
+        #menu-container::-webkit-scrollbar-thumb:hover { background: #e8a81a; }
+
+        /* SVG Donut Chart Animation */
+        .donut-segment { transition: stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease; }
+    </style>
 </head>
 <body>
 
-
-
-
-
-<div class="hero">
-    <video autoplay loop muted id="background-video">
-        <source src="background.mp4" type="video/mp4">
-        你的瀏覽器不支援影片播放。
-    </video>
-
-
-
-<img src="IsleLogo.png" alt="吉祥島 Logo" style="width: 50vw; height: auto;">
-
-
-
-
-
-
-    <div class="hero-text">
-
-        <h1>AuspiceIsle 吉祥島</h1>
-
-        <p>
-
-Auspice Isle is composed of both real and fictional cities, including Taipei, Paris, Dubai, and a hyper-realistic racing circuit designed for speed. Rooted in the ideals of sexual liberation, the city embraces bodily autonomy and the legitimacy of desire. Built with Unreal Engine, it manifests a digital urban prototype that blurs the line between reality and fantasy.
-
-
-</P>
-吉祥島由多座現實與虛構城市構成，包括台北、巴黎、杜拜，以及一條專為速度而生的實感賽車賽道。這座城市以性解放為核心價值，主張慾望的正當性與身體的自由。全區由 Unreal 引擎打造，呈現一個介於真實與幻想之間的數位都市原型。
-
-</P>
-吉祥島は、台北、パリ、ドバイ、そしてスピードのために設計された実感型レーシングサーキットを含む、現実と幻想の都市によって構成されています。性の解放を理念とし、欲望の正当性と身体の自主性を尊重するこの都市は、Unreal Engine によって構築され、現実と幻想の境界を曖昧にするデジタル都市の原型を提示します。
-
-</p>
-
-Auspice Isle besteht aus realen und fiktiven Städten – darunter Taipeh, Paris, Dubai sowie eine realitätsnahe Rennstrecke, geschaffen für pure Geschwindigkeit. Die Stadt steht im Zeichen sexueller Befreiung, bejaht körperliche Autonomie und die Legitimität von Verlangen. Realisiert mit der Unreal Engine, bildet sie ein digitales urbanes Modell zwischen Realität und Fantasie.
-
-</p>
-
-
+<div id="game-screen">
+    
+    <!-- 頂部標題 -->
+    <div class="title-underline relative z-10 flex justify-between items-end">
+        <h1 class="text-[12px] md:text-xl font-bold text-[#1a1a1a] tracking-wider uppercase">*DATABASE : Global Sectors</h1>
+        <div class="text-[10px] md:text-xs font-bold text-[#1a1a1a] tracking-widest uppercase">SYS.VER_2.0.26</div>
     </div>
-</div>
 
-
-
-
-
-
-
-
-
-<div class="image-gallery">
-<a href="魅魔町/index.htm" target="_blank" class="gallery-item">
-        <img src="image1.png" alt="圖片 1">
-        <div class="item-info">
-            這是一段文字
+    <!-- 左側選單 -->
+    <div class="flex flex-col w-[160px] md:w-64 mt-2 mb-auto z-10">
+        <div class="district-header">
+            <div class="text-[14px] md:text-lg district-arrow" onclick="prevDistrict()">◀</div>
+            <div id="district-title" class="text-[14px] md:text-lg font-bold text-[#1a1a1a] tracking-widest uppercase text-shadow-sm">HOKKAIDO</div>
+            <div class="text-[14px] md:text-lg district-arrow" onclick="nextDistrict()">▶</div>
         </div>
-    </a>
+        <div class="flex flex-col gap-[0.35rem]" id="menu-container"></div>
+    </div>
 
-
-<video src="video1.mp4" autoplay loop muted class="gallery-video"></video>
-
-
-    <a href="https://www.example.com/link2" target="_blank" class="gallery-item">
-        <img src="image2.png" alt="圖片 2">
-        <div class="item-info">
-            這也是一段文字
+    <!-- 右上角：即時影像面板 -->
+    <div id="video-feed-wrapper" class="video-feed-wrapper">
+        <div class="video-label w-full text-right">* LIVE FEED</div>
+        <div class="video-box relative">
+            <video id="node-video" class="video-screen" autoplay loop muted playsinline></video>
         </div>
-    </a>
+    </div>
 
-
-
-<video src="video2.mp4" autoplay loop muted class="gallery-video"></video>
-
-
-
-
-    <a href="https://www.example.com/link3" target="_blank" class="gallery-item">
-        <img src="image3.png" alt="圖片 3">
-        <div class="item-info">
-            這還是一段文字
-        </div>
-    </a>
-
-<video src="video3.mp4" autoplay loop muted class="gallery-video"></video>
-
-    <a href="https://www.example.com/link3" target="_blank" class="gallery-item">
-        <img src="image4.png" alt="圖片 4">
-        <div class="item-info">
-            這還是一段文字
-        </div>
-    </a>
-
-<video src="video4.mp4" autoplay loop muted class="gallery-video"></video>
-
-<video src="video5.mp4" autoplay loop muted class="gallery-video"></video>
-
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-    <div class="people-section">
-        <div class="person" data-name="person1">
-            <img src="person1.png" alt="人物 1">
-            <div class="speech-bubble"></div>
+    <!-- 右側：資料統計面板 -->
+    <div id="stats-panel" class="w-[150px] md:w-[280px]">
+        <div class="video-label w-full text-right mb-[2px]">* DEMOGRAPHICS</div>
+        
+        <!-- 人口佔比 -->
+        <div class="video-box w-full p-[4px] md:p-[8px] text-white">
+            <div class="flex justify-between text-[10px] md:text-[12px] text-[#e8a81a] font-bold">
+                <span>人口占比 POP.</span>
+                <span id="stat-pop-text">0.0%</span>
+            </div>
+            <div class="w-full h-[4px] bg-[#1a1a1a] mt-[2px] md:mt-1">
+                <div id="stat-pop-bar" class="h-full bg-[#e8a81a] transition-all duration-700" style="width: 0%"></div>
+            </div>
         </div>
 
-        <div class="person" data-name="person2">
-            <img src="person2.png" alt="人物 2">
-            <div class="speech-bubble"></div>
+        <!-- 屬性調性 (圓餅圖) -->
+        <div class="video-box w-full p-[4px] md:p-3 flex items-center justify-between text-white">
+            <!-- r=15.9155 代表圓周長剛好為 100 -->
+            <svg viewBox="0 0 40 40" class="w-12 h-12 md:w-16 md:h-16 transform -rotate-90 drop-shadow-md flex-shrink-0">
+                <circle cx="20" cy="20" r="15.9155" fill="none" stroke="#1a1a1a" stroke-width="6"></circle>
+                <!-- 御姐 (黃) -->
+                <circle id="pie-yujie" class="donut-segment" cx="20" cy="20" r="15.9155" fill="none" stroke="#e8a81a" stroke-width="6" stroke-dasharray="0 100" stroke-dashoffset="25"></circle>
+                <!-- 少御 (灰) -->
+                <circle id="pie-shaoyu" class="donut-segment" cx="20" cy="20" r="15.9155" fill="none" stroke="#8e939f" stroke-width="6" stroke-dasharray="0 100" stroke-dashoffset="25"></circle>
+                <!-- 少女 (白) -->
+                <circle id="pie-shaonv" class="donut-segment" cx="20" cy="20" r="15.9155" fill="none" stroke="#ffffff" stroke-width="6" stroke-dasharray="0 100" stroke-dashoffset="25"></circle>
+            </svg>
+            <div class="flex flex-col text-[9px] md:text-[11px] font-bold w-[58%] leading-relaxed">
+                <div class="flex justify-between"><span class="text-[#e8a81a]">御姐 V1</span><span id="stat-v1">0%</span></div>
+                <div class="flex justify-between"><span class="text-[#8e939f]">少御 V2</span><span id="stat-v2">0%</span></div>
+                <div class="flex justify-between"><span class="text-white">少女 V3</span><span id="stat-v3">0%</span></div>
+            </div>
         </div>
 
-        <div class="person" data-name="person3">
-            <img src="person3.png" alt="人物 3">
-            <div class="speech-bubble"></div>
+        <!-- 職業佔比 -->
+        <div class="video-box w-full p-[4px] md:p-[8px] text-white flex flex-col gap-[2px] md:gap-1 text-[9px] md:text-[11px] font-bold" id="stat-jobs-container">
+            <!-- JS 動態生成 -->
+        </div>
+    </div>
+
+    <!-- 動態追蹤黑線 -->
+    <svg id="dynamic-line-canvas">
+        <polyline id="tracking-line" class="tracking-line"></polyline>
+        <circle id="tracking-dot" class="tracking-dot" r="3"></circle>
+        <rect id="tracking-anchor" class="tracking-anchor" width="6" height="6" x="-3" y="-3"></rect>
+    </svg>
+
+    <!-- 右側 3D 地圖容器 -->
+    <div class="map-wrapper pointer-events-none">
+        <!-- District 0: 北海道 Hokkaido -->
+        <div id="map-district-0" class="map-3d-container active">
+            <div class="map-3d">
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="48,162 42,155 35,140 32,125 40,118 48,110 40,102 42,92 50,90 58,85 65,72 70,55 75,40 80,28 85,25 90,28 95,45 105,55 115,52 130,48 145,42 160,45 168,52 155,65 145,72 158,80 172,85 185,90 175,98 160,102 145,108 135,122 125,135 115,148 105,145 95,138 85,125 75,128 65,140 55,152" fill="#000000" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="48,162 42,155 35,140 32,125 40,118 48,110 40,102 42,92 50,90 58,85 65,72 70,55 75,40 80,28 85,25 90,28 95,45 105,55 115,52 130,48 145,42 160,45 168,52 155,65 145,72 158,80 172,85 185,90 175,98 160,102 145,108 135,122 125,135 115,148 105,145 95,138 85,125 75,128 65,140 55,152" fill="#050505" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="48,162 42,155 35,140 32,125 40,118 48,110 40,102 42,92 50,90 58,85 65,72 70,55 75,40 80,28 85,25 90,28 95,45 105,55 115,52 130,48 145,42 160,45 168,52 155,65 145,72 158,80 172,85 185,90 175,98 160,102 145,108 135,122 125,135 115,148 105,145 95,138 85,125 75,128 65,140 55,152" fill="#0a0a0a" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="48,162 42,155 35,140 32,125 40,118 48,110 40,102 42,92 50,90 58,85 65,72 70,55 75,40 80,28 85,25 90,28 95,45 105,55 115,52 130,48 145,42 160,45 168,52 155,65 145,72 158,80 172,85 185,90 175,98 160,102 145,108 135,122 125,135 115,148 105,145 95,138 85,125 75,128 65,140 55,152" fill="#0f0f0f" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200">
+                    <polygon points="48,162 42,155 35,140 32,125 40,118 48,110 40,102 42,92 50,90 58,85 65,72 70,55 75,40 80,28 85,25 90,28 95,45 105,55 115,52 130,48 145,42 160,45 168,52 155,65 145,72 158,80 172,85 185,90 175,98 160,102 145,108 135,122 125,135 115,148 105,145 95,138 85,125 75,128 65,140 55,152" fill="#1a1a1a" stroke="#333" stroke-width="1" stroke-linejoin="round"/>
+                    <path d="M 48 162 L 185 90 M 80 28 L 115 148 M 40 102 L 160 45" stroke="#222" stroke-width="0.5" />
+                    <circle id="d0-point-0" class="map-point" cx="65" cy="100" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-1" class="map-point" cx="40" cy="140" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-2" class="map-point" cx="95" cy="70" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-3" class="map-point" cx="145" cy="100" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-4" class="map-point" cx="55" cy="95" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-5" class="map-point" cx="82" cy="30" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-6" class="map-point" cx="115" cy="110" r="3" fill="#ffffff" /> 
+                    <circle id="d0-point-7" class="map-point" cx="178" cy="92" r="3" fill="#ffffff" /> 
+                </svg>
+                <div id="d0-tower-0" class="tower-container" style="left: 32.5%; top: 50%;">
+                    <svg class="tower-plane plane-1" viewBox="0 0 40 150"><polygon points="20,0 40,150 0,150" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="150" stroke-dasharray="2 2"/><line x1="10" y1="75" x2="30" y2="75"/></svg>
+                    <svg class="tower-plane plane-2" viewBox="0 0 40 150"><polygon points="20,0 40,150 0,150" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="150" stroke-dasharray="2 2"/><line x1="10" y1="75" x2="30" y2="75"/></svg>
+                </div>
+            </div>
         </div>
 
-        <div class="person" data-name="person4">
-            <img src="person4.png" alt="人物 4">
-            <div class="speech-bubble"></div>
+        <!-- District 1: 智利 Chile -->
+        <div id="map-district-1" class="map-3d-container next">
+            <div class="map-3d">
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#000000" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#050505" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#0a0a0a" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#0f0f0f" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200">
+                    <polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#1a1a1a" stroke="#333" stroke-width="1" stroke-linejoin="round"/>
+                    <path d="M 148 15 L 82 195 M 128 32 L 150 42 M 105 88 L 128 92 M 85 145 L 98 152" stroke="#222" stroke-width="0.5" />
+                    <circle id="d1-point-0" class="map-point" cx="108" cy="105" r="3" fill="#ffffff" /> 
+                    <circle id="d1-point-1" class="map-point" cx="128" cy="55" r="3" fill="#ffffff" /> 
+                    <circle id="d1-point-2" class="map-point" cx="80" cy="185" r="3" fill="#ffffff" /> 
+                    <circle id="d1-point-3" class="map-point" cx="142" cy="22" r="3" fill="#ffffff" /> 
+                    <circle id="d1-point-4" class="map-point" cx="102" cy="108" r="3" fill="#ffffff" /> 
+                    <circle id="d1-point-5" class="map-point" cx="98" cy="125" r="3" fill="#ffffff" /> 
+                    <circle id="d1-point-6" class="map-point" cx="92" cy="145" r="3" fill="#ffffff" /> 
+                </svg>
+                <div id="d1-tower-0" class="tower-container" style="left: 54%; top: 52.5%;">
+                    <svg class="tower-plane plane-1" viewBox="0 0 40 100"><polygon points="10,0 30,0 40,100 0,100" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="100" stroke-dasharray="2 2"/></svg>
+                    <svg class="tower-plane plane-2" viewBox="0 0 40 100"><polygon points="10,0 30,0 40,100 0,100" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="100" stroke-dasharray="2 2"/></svg>
+                </div>
+            </div>
         </div>
 
-        <div class="person" data-name="person5">
-            <img src="person5.png" alt="人物 5">
-            <div class="speech-bubble"></div>
+        <!-- District 2: 台灣 Taiwan -->
+        <div id="map-district-2" class="map-3d-container next">
+            <div class="map-3d">
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="118,25 124,24 130,28 134,36 138,48 137,60 133,78 128,95 124,110 118,130 114,145 108,160 102,172 98,175 92,172 88,162 84,152 79,140 76,125 74,110 75,95 78,85 84,72 92,58 100,45 108,35 114,28" fill="#000000" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="118,25 124,24 130,28 134,36 138,48 137,60 133,78 128,95 124,110 118,130 114,145 108,160 102,172 98,175 92,172 88,162 84,152 79,140 76,125 74,110 75,95 78,85 84,72 92,58 100,45 108,35 114,28" fill="#050505" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="118,25 124,24 130,28 134,36 138,48 137,60 133,78 128,95 124,110 118,130 114,145 108,160 102,172 98,175 92,172 88,162 84,152 79,140 76,125 74,110 75,95 78,85 84,72 92,58 100,45 108,35 114,28" fill="#0a0a0a" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200"><polygon points="118,25 124,24 130,28 134,36 138,48 137,60 133,78 128,95 124,110 118,130 114,145 108,160 102,172 98,175 92,172 88,162 84,152 79,140 76,125 74,110 75,95 78,85 84,72 92,58 100,45 108,35 114,28" fill="#0f0f0f" /></svg>
+                <svg class="map-layer" viewBox="0 0 200 200">
+                    <polygon points="118,25 124,24 130,28 134,36 138,48 137,60 133,78 128,95 124,110 118,130 114,145 108,160 102,172 98,175 92,172 88,162 84,152 79,140 76,125 74,110 75,95 78,85 84,72 92,58 100,45 108,35 114,28" fill="#1a1a1a" stroke="#333" stroke-width="1" stroke-linejoin="round"/>
+                    <path d="M 118 25 L 98 175 M 138 48 L 78 85 M 124 110 L 74 110" stroke="#222" stroke-width="0.5" />
+                    <circle id="d2-point-0" class="map-point" cx="115" cy="35" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-1" class="map-point" cx="95" cy="85" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-2" class="map-point" cx="90" cy="145" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-3" class="map-point" cx="100" cy="55" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-4" class="map-point" cx="128" cy="80" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-5" class="map-point" cx="85" cy="130" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-6" class="map-point" cx="118" cy="135" r="3" fill="#ffffff" /> 
+                    <circle id="d2-point-7" class="map-point" cx="98" cy="168" r="3" fill="#ffffff" /> 
+                </svg>
+                <div id="d2-tower-0" class="tower-container" style="left: 57.5%; top: 17.5%;">
+                    <svg class="tower-plane plane-1" viewBox="0 0 40 120"><polygon points="15,0 25,0 35,120 5,120" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="120" stroke-dasharray="2 2"/></svg>
+                    <svg class="tower-plane plane-2" viewBox="0 0 40 120"><polygon points="15,0 25,0 35,120 5,120" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="120" stroke-dasharray="2 2"/></svg>
+                </div>
+            </div>
         </div>
-
-        <div class="person" data-name="person6">
-            <img src="person6.png" alt="人物 6">
-            <div class="speech-bubble"></div>
-        </div>
-
-        <div class="person" data-name="person7">
-            <img src="person7.png" alt="人物 7">
-            <div class="speech-bubble"></div>
-        </div>
-</div>
-</p>
-
-    <div class="end">
-
-吉祥島是一座融合設計、神話與情色象徵的超現實群島。
-島上劃分為數個獨特區域——每一處都是慾望、記憶或儀式的具現。
-從聖炫路的濱海靜謐，到魅魔大道的原始能量，島上每一角都訴說著不同的故事。
-整個計畫以 Unreal Engine 製作，結合尖端即時渲染技術與手工雕琢的視覺詩意，構築出一座活著的夢境。
-
-AuspiceIsle is a surreal archipelago of design, mythology, and erotic symbolism. It is divided into several unique zones—each a manifestation of desire, memory, or ritual. From the seaside calm of Shengxuan Road to the raw energy of Succubus Avenue, every part of the island tells a different story. The entire project is crafted in Unreal Engine, blending cutting-edge real-time rendering with handcrafted visual poetry.
-
-吉祥島は、神話、建築、官能の象徴をテーマにした幻想的な島です。いくつかのエリアに分かれており、それぞれが欲望や記憶、儀式を表現しています。海沿いの聖炫路から、直線的な魔族通りまで、すべての場所に物語が宿っています。このプロジェクトは Unreal Engine を用いて制作され、精密な手作業と最新のレンダリング技術が融合しています。
-
 
     </div>
 
-    <div class="footer">
+    <!-- 底部通訊與訊息區域 (整合頭像與文字) -->
+    <div class="mt-auto mb-2 relative z-10 w-[98%] md:w-[85%] flex items-end gap-2 md:gap-3 self-center md:self-start">
+        
+        <!-- 動態頭像 (COMM) -->
+        <div class="avatar-wrapper">
+            <div class="message-tab self-start">*COMM</div>
+            <div class="avatar-box relative">
+                <video class="avatar-video" src="https://succubusstudio.github.io/AI/32.mp4" autoplay loop muted playsinline></video>
+                <div class="absolute inset-0 pointer-events-none scanlines"></div>
+                <div class="absolute top-[4px] right-[4px] w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_4px_red]" style="animation: blink 0.8s infinite alternate;"></div>
+            </div>
+        </div>
 
-
-© 2025 Succubus Studio — A doctrine of forbidden architecture. All sins reserved.
-
-</p>
-
-        <img src="logo.png" alt="公司 Logo">
+        <!-- 原本的訊息對話框區域 -->
+        <div class="flex-grow flex flex-col">
+            <div class="message-tab self-start">*INFO</div>
+            <div class="message-body w-full" id="message-text">
+                Initializing global network...
+            </div>
+        </div>
+        
     </div>
 
-    <script src="script.js"></script>
+    <!-- 底部操作說明 -->
+    <div class="footer-text mt-1 mb-0 z-10">
+        <div>▲/▼ : Select Node</div>
+        <span class="divider">|</span>
+        <div>◀/▶ : Change Sector</div>
+        <span class="divider">|</span>
+        <div>O : Execute</div>
+        <span class="divider">|</span>
+        <div class="text-[#cc3300]">System 2026</div>
+    </div>
+
+</div>
+
+<script>
+    const vid1 = "https://succubusstudio.github.io/AI/13.mp4";
+    const vid2 = "https://succubusstudio.github.io/AI/15.mp4";
+
+    const districtsData = [
+        {
+            name: "北海道 Hokkaido",
+            items: [
+                { label: "札幌總部", message: "北區指揮中心。發射塔已充能完畢。\n[ Main broadcast tower active. ]", towerId: "d0-tower-0", video: vid1, stats: { pop: 22.5, vibes: [60, 30, 10], jobs: [{n: "戰術指揮", v: 45}, {n: "科研分析", v: 35}, {n: "防禦武裝", v: 20}] } },
+                { label: "函館星形陣", message: "南方咽喉要塞。海上防禦網持續運作中。\n[ Defense grid nominal. ]", video: vid2, stats: { pop: 12.8, vibes: [40, 40, 20], jobs: [{n: "重裝武力", v: 55}, {n: "後勤補給", v: 25}, {n: "艦隊操縱", v: 20}] } },
+                { label: "旭川觀測站", message: "極地氣候監測站。偵測到異常溫度波動。\n[ Warning: Thermal anomalies. ]", video: vid1, stats: { pop: 8.2, vibes: [25, 60, 15], jobs: [{n: "氣象觀測", v: 60}, {n: "生態維護", v: 25}, {n: "通訊中繼", v: 15}] } },
+                { label: "釧路雷達網", message: "東部預警雷達陣列。掃描範圍擴及西北太平洋。\n[ Pacific scan complete. ]", video: vid2, stats: { pop: 5.4, vibes: [70, 20, 10], jobs: [{n: "情報截獲", v: 65}, {n: "雷達管制", v: 25}, {n: "武裝巡邏", v: 10}] } },
+                { label: "小樽港區", message: "歷史港口設施。目前轉為後勤補給專用。\n[ Logistics hub secured. ]", video: vid1, stats: { pop: 15.0, vibes: [30, 45, 25], jobs: [{n: "物資調度", v: 50}, {n: "機甲維修", v: 35}, {n: "醫療支援", v: 15}] } },
+                { label: "稚內極點", message: "最北端監聽站。攔截到來自北方的加密信號。\n[ Encrypted transmission detected. ]", video: vid2, stats: { pop: 2.1, vibes: [85, 10, 5], jobs: [{n: "密碼破譯", v: 80}, {n: "孤島防禦", v: 15}, {n: "生還專家", v: 5}] } },
+                { label: "帶廣平原", message: "主要農業與生化實驗區。環境指數穩定。\n[ Bio-metrics stable. ]", video: vid1, stats: { pop: 6.7, vibes: [15, 35, 50], jobs: [{n: "生化實驗", v: 45}, {n: "農場管理", v: 35}, {n: "基因重組", v: 20}] } },
+                { label: "根室前哨", message: "東端爭議邊界。已部署高密度自動防禦機甲。\n[ Auto-mech deployed. ]", video: vid2, stats: { pop: 1.5, vibes: [50, 40, 10], jobs: [{n: "無人機操作", v: 70}, {n: "陣地死守", v: 20}, {n: "爆破工程", v: 10}] } }
+            ]
+        },
+        {
+            name: "智利 Chile",
+            items: [
+                { label: "聖地牙哥樞紐", message: "安地斯山脈通訊中樞。該區呈現狹長防禦優勢。\n[ Andes Hub Online. ]", towerId: "d1-tower-0", video: vid1, stats: { pop: 35.0, vibes: [55, 30, 15], jobs: [{n: "戰術中樞", v: 40}, {n: "內政管理", v: 35}, {n: "精銳護衛", v: 25}] } },
+                { label: "阿塔卡馬矩陣", message: "沙漠區太陽能陣列與天文觀測站。\n[ Solar input at peak. ]", video: vid2, stats: { pop: 4.5, vibes: [20, 60, 20], jobs: [{n: "能源管理", v: 60}, {n: "深空探測", v: 30}, {n: "熱能轉換", v: 10}] } },
+                { label: "冰川前哨", message: "通往南極圈的最終檢查站。通訊信號微弱。\n[ Weak signal detected. ]", video: vid1, stats: { pop: 1.2, vibes: [80, 15, 5], jobs: [{n: "冰原求生", v: 50}, {n: "遠距狙擊", v: 35}, {n: "地質鑽探", v: 15}] } },
+                { label: "阿里卡邊境", message: "北部邊界軍事區。地對空導彈系統已上線。\n[ SAM systems online. ]", video: vid2, stats: { pop: 7.8, vibes: [45, 45, 10], jobs: [{n: "防空管制", v: 65}, {n: "重砲射擊", v: 25}, {n: "彈藥補給", v: 10}] } },
+                { label: "瓦爾帕萊索", message: "主要海軍基地。艦隊目前處於一級戰備狀態。\n[ Fleet at condition red. ]", video: vid1, stats: { pop: 18.2, vibes: [65, 25, 10], jobs: [{n: "艦隊指揮", v: 45}, {n: "潛艦聲納", v: 35}, {n: "海軍陸戰", v: 20}] } },
+                { label: "康塞普西翁", message: "南部工業帶。重金屬開採設施全速運轉中。\n[ Mining operations optimal. ]", video: vid2, stats: { pop: 14.6, vibes: [10, 50, 40], jobs: [{n: "重型機甲", v: 50}, {n: "礦石提煉", v: 35}, {n: "熔爐監控", v: 15}] } },
+                { label: "蒙特港峽灣", message: "進入峽灣區的門戶。水下聲納陣列部署完畢。\n[ Sonar array active. ]", video: vid1, stats: { pop: 6.3, vibes: [35, 40, 25], jobs: [{n: "水下爆破", v: 40}, {n: "隱蔽偵查", v: 40}, {n: "生態保護", v: 20}] } }
+            ]
+        },
+        {
+            name: "台灣 Taiwan",
+            items: [
+                { label: "台北機核", message: "亞太區數據處理中心。系統負載率 98%。\n[ Central node high capacity. ]", towerId: "d2-tower-0", video: vid1, stats: { pop: 28.5, vibes: [45, 35, 20], jobs: [{n: "資訊駭客", v: 55}, {n: "決策中樞", v: 30}, {n: "特勤防護", v: 15}] } },
+                { label: "台中中繼站", message: "南北能源傳輸中樞。西海岸防禦系統待命。\n[ Energy grid stable. ]", video: vid2, stats: { pop: 16.4, vibes: [30, 50, 20], jobs: [{n: "電網調配", v: 45}, {n: "重裝攔截", v: 35}, {n: "機甲保養", v: 20}] } },
+                { label: "高雄重港", message: "機甲與物資集散地。海上吞吐量達到巔峰。\n[ Logistics operating effectively. ]", video: vid1, stats: { pop: 15.8, vibes: [65, 20, 15], jobs: [{n: "兩棲作戰", v: 40}, {n: "起重裝卸", v: 35}, {n: "武裝押運", v: 25}] } },
+                { label: "新竹矽盾", message: "量子晶片研發中心。啟動最高級別實體隔離。\n[ Quantum firewall engaged. ]", video: vid2, stats: { pop: 8.9, vibes: [15, 65, 20], jobs: [{n: "量子物理", v: 60}, {n: "晶片光刻", v: 25}, {n: "無塵巡邏", v: 15}] } },
+                { label: "花蓮岩隙", message: "東部地下武裝要塞。提供 100% 抗打擊能力。\n[ Underground bunker secured. ]", video: vid1, stats: { pop: 5.2, vibes: [75, 15, 10], jobs: [{n: "地下爆破", v: 45}, {n: "雷達屏蔽", v: 35}, {n: "戰備儲糧", v: 20}] } },
+                { label: "台南舊都", message: "檔案庫與備用伺服器群。正在進行數據鏡像備份。\n[ Data mirroring in progress. ]", video: vid2, stats: { pop: 11.5, vibes: [25, 45, 30], jobs: [{n: "檔案修復", v: 50}, {n: "遺跡發掘", v: 30}, {n: "文化保存", v: 20}] } },
+                { label: "台東航太", message: "大氣層外載具發射場。軌道電梯正在建設中。\n[ Orbital construction ongoing. ]", video: vid1, stats: { pop: 4.6, vibes: [55, 30, 15], jobs: [{n: "軌道導航", v: 50}, {n: "零重力適應", v: 30}, {n: "推進器維護", v: 20}] } },
+                { label: "墾丁雷達", message: "巴士海峽監控陣列。發現不明潛水物體接近。\n[ Unknown submarine contact. ]", video: vid2, stats: { pop: 3.8, vibes: [20, 35, 45], jobs: [{n: "水聲偵查", v: 65}, {n: "海灘巡防", v: 20}, {n: "熱能顯影", v: 15}] } }
+            ]
+        }
+    ];
+
+    let currentDistrictIndex = 0;
+    let currentLocationIndex = 0; 
+    
+    const menuContainer = document.getElementById('menu-container');
+    const messageText = document.getElementById('message-text');
+    const districtTitle = document.getElementById('district-title');
+    const videoWrapper = document.getElementById('video-feed-wrapper');
+    const statsPanel = document.getElementById('stats-panel');
+    const videoNode = document.getElementById('node-video');
+
+    const trackingLine = document.getElementById('tracking-line');
+    const trackingDot = document.getElementById('tracking-dot');
+    const trackingAnchor = document.getElementById('tracking-anchor');
+
+    window.prevDistrict = function() {
+        currentDistrictIndex = (currentDistrictIndex > 0) ? currentDistrictIndex - 1 : districtsData.length - 1;
+        currentLocationIndex = 0;
+        updateMapCarousel();
+        renderMenu();
+    }
+    window.nextDistrict = function() {
+        currentDistrictIndex = (currentDistrictIndex < districtsData.length - 1) ? currentDistrictIndex + 1 : 0;
+        currentLocationIndex = 0;
+        updateMapCarousel();
+        renderMenu();
+    }
+
+    function updateMapCarousel() {
+        districtsData.forEach((_, index) => {
+            const mapEl = document.getElementById(`map-district-${index}`);
+            mapEl.classList.remove('active', 'prev', 'next');
+            if (index === currentDistrictIndex) {
+                mapEl.classList.add('active');
+            } else if (index < currentDistrictIndex || (currentDistrictIndex === 0 && index === districtsData.length - 1)) {
+                mapEl.classList.add('prev');
+            } else {
+                mapEl.classList.add('next');
+            }
+        });
+    }
+
+    function updateStatsPanel(stats) {
+        document.getElementById('stat-pop-text').innerText = `${stats.pop}%`;
+        document.getElementById('stat-pop-bar').style.width = `${stats.pop}%`;
+
+        const yujie = stats.vibes[0];
+        const shaoyu = stats.vibes[1];
+        const shaonv = stats.vibes[2];
+        
+        document.getElementById('stat-v1').innerText = `${yujie}%`;
+        document.getElementById('stat-v2').innerText = `${shaoyu}%`;
+        document.getElementById('stat-v3').innerText = `${shaonv}%`;
+
+        document.getElementById('pie-yujie').setAttribute('stroke-dasharray', `${yujie} ${100 - yujie}`);
+        document.getElementById('pie-yujie').setAttribute('stroke-dashoffset', `25`); 
+        
+        document.getElementById('pie-shaoyu').setAttribute('stroke-dasharray', `${shaoyu} ${100 - shaoyu}`);
+        document.getElementById('pie-shaoyu').setAttribute('stroke-dashoffset', `${25 - yujie}`);
+        
+        document.getElementById('pie-shaonv').setAttribute('stroke-dasharray', `${shaonv} ${100 - shaonv}`);
+        document.getElementById('pie-shaonv').setAttribute('stroke-dashoffset', `${25 - yujie - shaoyu}`);
+
+        const jobsContainer = document.getElementById('stat-jobs-container');
+        jobsContainer.innerHTML = '';
+        stats.jobs.forEach(job => {
+            jobsContainer.innerHTML += `
+                <div class="flex justify-between items-center w-full">
+                    <span class="text-[#8e939f] w-14">${job.n}</span>
+                    <div class="flex-grow h-[3px] bg-[#1a1a1a] mx-1 md:mx-2">
+                        <div class="h-full bg-[#bcc0c9]" style="width: ${job.v}%"></div>
+                    </div>
+                    <span class="text-white w-6 text-right">${job.v}%</span>
+                </div>
+            `;
+        });
+    }
+
+    function renderMenu() {
+        const currentData = districtsData[currentDistrictIndex];
+        const currentItem = currentData.items[currentLocationIndex];
+        
+        districtTitle.innerText = currentData.name;
+
+        menuContainer.innerHTML = '';
+        currentData.items.forEach((item, index) => {
+            const isActive = index === currentLocationIndex;
+            const menuItemHTML = `
+                <div class="menu-item flex items-stretch cursor-pointer ${isActive ? 'active' : ''}" onclick="selectItem(${index})">
+                    <div class="menu-item-box flex-grow">
+                        ${item.label}
+                    </div>
+                    <div class="menu-indicator-box">
+                        <div class="indicator-core"></div>
+                    </div>
+                </div>
+            `;
+            menuContainer.innerHTML += menuItemHTML;
+        });
+        
+        currentData.items.forEach((item, index) => {
+            const pointId = `d${currentDistrictIndex}-point-${index}`;
+            const pointEl = document.getElementById(pointId);
+            if (pointEl) {
+                if (index === currentLocationIndex) {
+                    pointEl.classList.add('active');
+                } else {
+                    pointEl.classList.remove('active');
+                }
+            }
+
+            if (item.towerId) {
+                const towerEl = document.getElementById(item.towerId);
+                if (towerEl) {
+                    if (index === currentLocationIndex) {
+                        towerEl.classList.add('active');
+                    } else {
+                        towerEl.classList.remove('active');
+                    }
+                }
+            }
+        });
+
+        if (menuContainer.children[currentLocationIndex]) {
+            menuContainer.children[currentLocationIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        typeMessage(currentItem.message);
+
+        videoWrapper.classList.remove('active');
+        statsPanel.classList.remove('active');
+        trackingLine.classList.remove('active');
+        trackingDot.classList.remove('active');
+        trackingAnchor.classList.remove('active');
+        
+        setTimeout(() => {
+            if(currentItem.stats) updateStatsPanel(currentItem.stats);
+
+            if (currentItem.video) {
+                videoNode.src = currentItem.video;
+                videoNode.load();
+                videoNode.play().catch(e => console.warn("影片播放阻擋:", e));
+
+                videoWrapper.classList.add('active');
+                statsPanel.classList.add('active');
+                trackingLine.classList.add('active');
+                trackingDot.classList.add('active');
+                trackingAnchor.classList.add('active');
+            } else {
+                videoNode.removeAttribute('src');
+                videoNode.load();
+            }
+        }, 50);
+    }
+
+    function updateTrackingLine() {
+        requestAnimationFrame(updateTrackingLine); 
+        
+        if (!videoWrapper.classList.contains('active')) return;
+        
+        const activePoint = document.getElementById(`d${currentDistrictIndex}-point-${currentLocationIndex}`);
+        const videoBox = document.querySelector('.video-feed-wrapper .video-box');
+        
+        if (activePoint && videoBox) {
+            const ptRect = activePoint.getBoundingClientRect();
+            const vdRect = videoBox.getBoundingClientRect();
+            const containerRect = document.getElementById('game-screen').getBoundingClientRect();
+            
+            const nx = ptRect.left + ptRect.width / 2 - containerRect.left;
+            const ny = ptRect.top + ptRect.height / 2 - containerRect.top;
+            
+            const vx = vdRect.left - containerRect.left;
+            const vy = vdRect.bottom - containerRect.top - 8;
+            
+            // 放大版面後的角度調整，讓轉折處線條看起來更俐落
+            const elbowX = vx - 30;
+            const elbowY = vy + 30;
+            const points = `${nx},${ny} ${nx},${ny - 20} ${elbowX},${elbowY} ${vx},${vy}`;
+            
+            trackingLine.setAttribute('points', points);
+            trackingDot.setAttribute('cx', nx);
+            trackingDot.setAttribute('cy', ny);
+            
+            trackingAnchor.setAttribute('x', vx - 3);
+            trackingAnchor.setAttribute('y', vy - 3);
+        }
+    }
+
+    updateTrackingLine();
+
+    let typeTimeout;
+    function typeMessage(text) {
+        clearTimeout(typeTimeout);
+        messageText.innerHTML = '';
+        let i = 0;
+        function typeChar() {
+            if (i < text.length) {
+                messageText.innerHTML += text.charAt(i);
+                i++;
+                typeTimeout = setTimeout(typeChar, 15);
+            }
+        }
+        typeChar();
+    }
+
+    window.selectItem = function(index) {
+        if (currentLocationIndex !== index) {
+            currentLocationIndex = index;
+            renderMenu();
+        }
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+            const itemsLength = districtsData[currentDistrictIndex].items.length;
+            currentLocationIndex = (currentLocationIndex > 0) ? currentLocationIndex - 1 : itemsLength - 1;
+            renderMenu();
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+            const itemsLength = districtsData[currentDistrictIndex].items.length;
+            currentLocationIndex = (currentLocationIndex < itemsLength - 1) ? currentLocationIndex + 1 : 0;
+            renderMenu();
+            e.preventDefault();
+        } 
+        else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+            prevDistrict();
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+            nextDistrict();
+            e.preventDefault();
+        }
+        else if (e.key === 'Enter' || e.key === ' ') {
+            const currentText = messageText.innerText;
+            messageText.innerHTML = "<span style='color:#e8a81a'>Connecting to Node...</span>";
+            setTimeout(() => {
+                typeMessage(currentText);
+            }, 400);
+        }
+    });
+
+    updateMapCarousel();
+    renderMenu();
+</script>
 
 </body>
 </html>
