@@ -101,24 +101,32 @@
             .message-body { font-size: 1rem; padding: 0.8rem 1rem; min-height: 80px; }
             .footer-text { font-size: 0.8rem; justify-content: flex-start; }
             .map-wrapper { top: 48%; left: 42%; transform: translate(-50%, -50%); width: 650px; height: 650px; z-index: 5; opacity: 1; }
-            
-            /* 調整影片位置與大小，讓出頂部空間，使其坐落於右側空曠處 */
             .video-feed-wrapper { top: 14%; right: 5%; }
             .video-screen { max-width: 360px; max-height: 220px; } 
-            
             .video-label { font-size: 0.9rem; margin-bottom: 6px; }
             #stats-panel { top: auto; bottom: 150px; width: 280px; gap: 0.5rem; } 
             .avatar-box { width: 110px; height: 110px; } 
         }
 
-        /* SVG 動畫與地圖特效 */
+        /* ================= WebP 圖片與地圖特效 ================= */
         .map-3d { width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(60deg) rotateZ(0deg); animation: rotateMap 35s linear infinite; }
-        .map-layer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
-        .map-layer:nth-child(1) { transform: translateZ(0px); }
-        .map-layer:nth-child(2) { transform: translateZ(4px); }
-        .map-layer:nth-child(3) { transform: translateZ(8px); }
-        .map-layer:nth-child(4) { transform: translateZ(12px); }
-        .map-layer:nth-child(5) { transform: translateZ(16px); }
+        
+        /* 姐姐的黑魔法：mix-blend-mode: screen 會把黑色的底變成透明！ */
+        img.map-layer { 
+            position: absolute; 
+            top: 0; left: 0; right: 0; bottom: 0; 
+            width: 100%; height: 100%; 
+            object-fit: contain;
+            pointer-events: none;
+            mix-blend-mode: screen; 
+        }
+
+        /* 做出景深：底層比較暗，越上面越亮 */
+        img.map-layer:nth-child(1) { transform: translateZ(0px); opacity: 0.3; filter: brightness(0.5); }
+        img.map-layer:nth-child(2) { transform: translateZ(4px); opacity: 0.5; filter: brightness(0.6); }
+        img.map-layer:nth-child(3) { transform: translateZ(8px); opacity: 0.7; filter: brightness(0.8); }
+        img.map-layer:nth-child(4) { transform: translateZ(12px); opacity: 0.9; filter: brightness(0.9); }
+        img.map-layer:nth-child(5) { transform: translateZ(16px); opacity: 1; filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)); }
 
         @keyframes rotateMap { 0% { transform: rotateX(60deg) rotateZ(0deg); } 100% { transform: rotateX(60deg) rotateZ(360deg); } }
 
@@ -129,13 +137,27 @@
         .tower-plane polygon { fill: rgba(255, 255, 255, 0.05); stroke: #555; transition: all 0.3s ease; }
         .tower-plane line { stroke: #555; transition: all 0.3s ease; }
         
-        /* 修正：移除 filter 避免 3D 破圖，改用 scale 放大與黃色強光感 */
         .tower-container.active { transform: translateZ(17px) scale(1.4); }
         .tower-container.active .tower-plane polygon { fill: rgba(255, 255, 255, 0.9); stroke: #e8a81a; stroke-width: 1.5px; }
         .tower-container.active .tower-plane line { stroke: #e8a81a; stroke-width: 2px;}
 
-        .map-point { transition: all 0.3s ease; transform-origin: center; }
-        .map-point.active { fill: #e8a81a; r: 6; filter: drop-shadow(0 0 8px #fff); stroke: #000; stroke-width: 1.5px; }
+        /* 將 SVG 圓點改成 Div，並用絕對定位 */
+        .map-point { 
+            position: absolute;
+            width: 8px; height: 8px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) translateZ(20px); /* 浮在圖層上面 */
+            transition: all 0.3s ease; 
+            cursor: pointer;
+            z-index: 10;
+        }
+        .map-point.active { 
+            background-color: #e8a81a; 
+            width: 14px; height: 14px; 
+            box-shadow: 0 0 10px #fff; 
+            border: 1.5px solid #000; 
+        }
 
         #menu-container { max-height: 55vh; overflow-y: auto; padding-right: 6px; }
         #menu-container::-webkit-scrollbar { width: 4px; }
@@ -147,26 +169,22 @@
 </head>
 <body>
 
-<!-- ================= 1. 主要畫面結構 (超乾淨！) ================= -->
+<!-- ================= 1. 主要畫面結構 ================= -->
 <div id="game-screen">
-    <!-- 頂部標題 -->
     <div class="title-underline relative z-10 flex justify-between items-end">
         <h1 class="text-[12px] md:text-xl font-bold text-[#1a1a1a] tracking-wider uppercase">*AuspiceIsle : Global Sectors</h1>
         <div class="text-[10px] md:text-xs font-bold text-[#1a1a1a] tracking-widest uppercase">SYS.VER_2.0.26</div>
     </div>
 
-    <!-- 左側選單 -->
     <div class="flex flex-col w-[160px] md:w-64 mt-2 mb-auto z-10">
         <div class="district-header">
             <div class="text-[14px] md:text-lg district-arrow" onclick="prevDistrict()">◀</div>
-            <!-- 在這裡加上了 whitespace-nowrap 強制不換行 -->
             <div id="district-title" class="text-[14px] md:text-lg font-bold text-[#1a1a1a] tracking-widest uppercase text-shadow-sm whitespace-nowrap">LOADING...</div>
             <div class="text-[14px] md:text-lg district-arrow" onclick="nextDistrict()">▶</div>
         </div>
         <div class="flex flex-col gap-[0.35rem]" id="menu-container"></div>
     </div>
 
-    <!-- 右上角：即時影像面板 -->
     <div id="video-feed-wrapper" class="video-feed-wrapper">
         <div class="video-label w-full text-right">* LIVE FEED</div>
         <div class="video-box relative">
@@ -174,10 +192,8 @@
         </div>
     </div>
 
-    <!-- 右側：資料統計面板 -->
     <div id="stats-panel" class="w-[150px] md:w-[280px]">
         <div class="video-label w-full text-right mb-[2px]">* DEMOGRAPHICS</div>
-        <!-- 人口佔比 -->
         <div class="video-box w-full p-[4px] md:p-[8px] text-white">
             <div class="flex justify-between text-[10px] md:text-[12px] text-[#e8a81a] font-bold">
                 <span>人口占比 POP.</span><span id="stat-pop-text">0.0%</span>
@@ -186,7 +202,6 @@
                 <div id="stat-pop-bar" class="h-full bg-[#e8a81a] transition-all duration-700" style="width: 0%"></div>
             </div>
         </div>
-        <!-- 屬性調性 (圓餅圖) -->
         <div class="video-box w-full p-[4px] md:p-3 flex items-center justify-between text-white">
             <svg viewBox="0 0 40 40" class="w-12 h-12 md:w-16 md:h-16 transform -rotate-90 drop-shadow-md flex-shrink-0">
                 <circle cx="20" cy="20" r="15.9155" fill="none" stroke="#1a1a1a" stroke-width="6"></circle>
@@ -200,7 +215,6 @@
                 <div class="flex justify-between"><span class="text-white">少女 V3</span><span id="stat-v3">0%</span></div>
             </div>
         </div>
-        <!-- 職業佔比 (JS 動態生成) -->
         <div class="video-box w-full p-[4px] md:p-[8px] text-white flex flex-col gap-[2px] md:gap-1 text-[9px] md:text-[11px] font-bold" id="stat-jobs-container"></div>
     </div>
 
@@ -211,7 +225,7 @@
         <rect id="tracking-anchor" class="tracking-anchor" width="6" height="6" x="-3" y="-3"></rect>
     </svg>
 
-    <!-- 右側 3D 地圖容器 (現在裡面是空的，由 JS 自動注入) -->
+    <!-- 右側 3D 地圖容器 -->
     <div class="map-wrapper pointer-events-none" id="main-map-wrapper"></div>
 
     <!-- 底部通訊與訊息區域 -->
@@ -239,124 +253,117 @@
     </div>
 </div>
 
-<!-- ================= 2. 獨立資料庫區塊 (可視為未來的 data.json) ================= -->
+<!-- ================= 2. 獨立資料庫區塊 ================= -->
 <script id="game-data" type="application/json">
 [
     {
         "name": "魅魔町 Succubus Town",
         "items": [
-            { "label": "魅魔大舍", "message": "北區指揮中心。發射塔已充能完畢。\n[ Main broadcast tower active. ]", "towerId": "d0-tower-0", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 22.5, "vibes": [60, 30, 10], "jobs": [{"n": "戰術指揮", "v": 45}, {"n": "科研分析", "v": 35}, {"n": "防禦武裝", "v": 20}] } },
-            { "label": "MAG 廣場", "message": "南方咽喉要塞。海上防禦網持續運作中。\n[ Defense grid nominal. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 12.8, "vibes": [40, 40, 20], "jobs": [{"n": "重裝武力", "v": 55}, {"n": "後勤補給", "v": 25}, {"n": "艦隊操縱", "v": 20}] } },
-            { "label": "吉祥島迎賓中心", "message": "極地氣候監測站。偵測到異常溫度波動。\n[ Warning: Thermal anomalies. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 8.2, "vibes": [25, 60, 15], "jobs": [{"n": "氣象觀測", "v": 60}, {"n": "生態維護", "v": 25}, {"n": "通訊中繼", "v": 15}] } },
-            { "label": "魅魔論壇", "message": "東部預警雷達陣列。掃描範圍擴及西北太平洋。\n[ Pacific scan complete. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 5.4, "vibes": [70, 20, 10], "jobs": [{"n": "情報截獲", "v": 65}, {"n": "雷達管制", "v": 25}, {"n": "武裝巡邏", "v": 10}] } },
-            { "label": "小樽港區", "message": "歷史港口設施。目前轉為後勤補給專用。\n[ Logistics hub secured. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 15.0, "vibes": [30, 45, 25], "jobs": [{"n": "物資調度", "v": 50}, {"n": "機甲維修", "v": 35}, {"n": "醫療支援", "v": 15}] } },
-            { "label": "稚內極點", "message": "最北端監聽站。攔截到來自北方的加密信號。\n[ Encrypted transmission detected. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 2.1, "vibes": [85, 10, 5], "jobs": [{"n": "密碼破譯", "v": 80}, {"n": "孤島防禦", "v": 15}, {"n": "生還專家", "v": 5}] } },
-            { "label": "根室前哨", "message": "東端爭議邊界。已部署高密度自動防禦機甲。\n[ Auto-mech deployed. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 1.5, "vibes": [50, 40, 10], "jobs": [{"n": "無人機操作", "v": 70}, {"n": "陣地死守", "v": 20}, {"n": "爆破工程", "v": 10}] } }
+            { "label": "魅魔大舍", "message": "北區指揮中心。發射塔已充能完畢。", "towerId": "d0-tower-0", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 22.5, "vibes": [60, 30, 10], "jobs": [{"n": "戰術指揮", "v": 45}, {"n": "科研分析", "v": 35}, {"n": "防禦武裝", "v": 20}] } },
+            { "label": "MAG 廣場", "message": "南方咽喉要塞。海上防禦網持續運作中。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 12.8, "vibes": [40, 40, 20], "jobs": [{"n": "重裝武力", "v": 55}, {"n": "後勤補給", "v": 25}, {"n": "艦隊操縱", "v": 20}] } },
+            { "label": "吉祥島迎賓中心", "message": "極地氣候監測站。偵測到異常溫度波動。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 8.2, "vibes": [25, 60, 15], "jobs": [{"n": "氣象觀測", "v": 60}, {"n": "生態維護", "v": 25}, {"n": "通訊中繼", "v": 15}] } },
+            { "label": "魅魔論壇", "message": "東部預警雷達陣列。掃描範圍擴及西北太平洋。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 5.4, "vibes": [70, 20, 10], "jobs": [{"n": "情報截獲", "v": 65}, {"n": "雷達管制", "v": 25}, {"n": "武裝巡邏", "v": 10}] } },
+            { "label": "小樽港區", "message": "歷史港口設施。目前轉為後勤補給專用。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 15.0, "vibes": [30, 45, 25], "jobs": [{"n": "物資調度", "v": 50}, {"n": "機甲維修", "v": 35}, {"n": "醫療支援", "v": 15}] } },
+            { "label": "稚內極點", "message": "最北端監聽站。攔截到來自北方的加密信號。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 2.1, "vibes": [85, 10, 5], "jobs": [{"n": "密碼破譯", "v": 80}, {"n": "孤島防禦", "v": 15}, {"n": "生還專家", "v": 5}] } },
+            { "label": "根室前哨", "message": "東端爭議邊界。已部署高密度自動防禦機甲。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 1.5, "vibes": [50, 40, 10], "jobs": [{"n": "無人機操作", "v": 70}, {"n": "陣地死守", "v": 20}, {"n": "爆破工程", "v": 10}] } }
         ]
     },
     {
         "name": "圣炫海岸 Holy Light Coast",
         "items": [
-            { "label": "XX路", "message": "安地斯山脈通訊中樞。該區呈現狹長防禦優勢。\n[ Andes Hub Online. ]", "towerId": "d1-tower-0", "video": "https://succubusstudio.github.io/AuspiceIsle/%E8%81%96%E7%82%AB%E6%B5%B7%E5%B2%B8.mp4", "stats": { "pop": 35.0, "vibes": [55, 30, 15], "jobs": [{"n": "戰術中樞", "v": 40}, {"n": "內政管理", "v": 35}, {"n": "精銳護衛", "v": 25}] } },
-            { "label": "阿塔卡馬矩陣", "message": "沙漠區太陽能陣列與天文觀測站。\n[ Solar input at peak. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 4.5, "vibes": [20, 60, 20], "jobs": [{"n": "能源管理", "v": 60}, {"n": "深空探測", "v": 30}, {"n": "熱能轉換", "v": 10}] } },
-            { "label": "冰川前哨", "message": "通往南極圈的最終檢查站。通訊信號微弱。\n[ Weak signal detected. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 1.2, "vibes": [80, 15, 5], "jobs": [{"n": "冰原求生", "v": 50}, {"n": "遠距狙擊", "v": 35}, {"n": "地質鑽探", "v": 15}] } },
-            { "label": "阿里卡邊境", "message": "北部邊界軍事區。地對空導彈系統已上線。\n[ SAM systems online. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 7.8, "vibes": [45, 45, 10], "jobs": [{"n": "防空管制", "v": 65}, {"n": "重砲射擊", "v": 25}, {"n": "彈藥補給", "v": 10}] } },
-            { "label": "瓦爾帕萊索", "message": "主要海軍基地。艦隊目前處於一級戰備狀態。\n[ Fleet at condition red. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 18.2, "vibes": [65, 25, 10], "jobs": [{"n": "艦隊指揮", "v": 45}, {"n": "潛艦聲納", "v": 35}, {"n": "海軍陸戰", "v": 20}] } },
-            { "label": "康塞普西翁", "message": "南部工業帶。重金屬開採設施全速運轉中。\n[ Mining operations optimal. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 14.6, "vibes": [10, 50, 40], "jobs": [{"n": "重型機甲", "v": 50}, {"n": "礦石提煉", "v": 35}, {"n": "熔爐監控", "v": 15}] } },
-            { "label": "蒙特港峽灣", "message": "進入峽灣區的門戶。水下聲納陣列部署完畢。\n[ Sonar array active. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 6.3, "vibes": [35, 40, 25], "jobs": [{"n": "水下爆破", "v": 40}, {"n": "隱蔽偵查", "v": 40}, {"n": "生態保護", "v": 20}] } }
+            { "label": "XX路", "message": "安地斯山脈通訊中樞。該區呈現狹長防禦優勢。", "towerId": "d1-tower-0", "video": "https://succubusstudio.github.io/AuspiceIsle/%E8%81%96%E7%82%AB%E6%B5%B7%E5%B2%B8.mp4", "stats": { "pop": 35.0, "vibes": [55, 30, 15], "jobs": [{"n": "戰術中樞", "v": 40}, {"n": "內政管理", "v": 35}, {"n": "精銳護衛", "v": 25}] } },
+            { "label": "阿塔卡馬矩陣", "message": "沙漠區太陽能陣列與天文觀測站。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 4.5, "vibes": [20, 60, 20], "jobs": [{"n": "能源管理", "v": 60}, {"n": "深空探測", "v": 30}, {"n": "熱能轉換", "v": 10}] } },
+            { "label": "冰川前哨", "message": "通往南極圈的最終檢查站。通訊信號微弱。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 1.2, "vibes": [80, 15, 5], "jobs": [{"n": "冰原求生", "v": 50}, {"n": "遠距狙擊", "v": 35}, {"n": "地質鑽探", "v": 15}] } },
+            { "label": "阿里卡邊境", "message": "北部邊界軍事區。地對空導彈系統已上線。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 7.8, "vibes": [45, 45, 10], "jobs": [{"n": "防空管制", "v": 65}, {"n": "重砲射擊", "v": 25}, {"n": "彈藥補給", "v": 10}] } },
+            { "label": "瓦爾帕萊索", "message": "主要海軍基地。艦隊目前處於一級戰備狀態。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 18.2, "vibes": [65, 25, 10], "jobs": [{"n": "艦隊指揮", "v": 45}, {"n": "潛艦聲納", "v": 35}, {"n": "海軍陸戰", "v": 20}] } },
+            { "label": "康塞普西翁", "message": "南部工業帶。重金屬開採設施全速運轉中。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 14.6, "vibes": [10, 50, 40], "jobs": [{"n": "重型機甲", "v": 50}, {"n": "礦石提煉", "v": 35}, {"n": "熔爐監控", "v": 15}] } },
+            { "label": "蒙特港峽灣", "message": "進入峽灣區的門戶。水下聲納陣列部署完畢。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 6.3, "vibes": [35, 40, 25], "jobs": [{"n": "水下爆破", "v": 40}, {"n": "隱蔽偵查", "v": 40}, {"n": "生態保護", "v": 20}] } }
         ]
     },
     {
-        "name": "棕梠島wwwwwww",
+        "name": "棕梠島",
         "items": [
-            { "label": "台北機核", "message": "亞太區數據處理中心。系統負載率 98%。\n[ Central node high capacity. ]", "towerId": "d2-tower-0", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 28.5, "vibes": [45, 35, 20], "jobs": [{"n": "資訊駭客", "v": 55}, {"n": "決策中樞", "v": 30}, {"n": "特勤防護", "v": 15}] } },
-            { "label": "台中中繼站", "message": "南北能源傳輸中樞。西海岸防禦系統待命。\n[ Energy grid stable. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 16.4, "vibes": [30, 50, 20], "jobs": [{"n": "電網調配", "v": 45}, {"n": "重裝攔截", "v": 35}, {"n": "機甲保養", "v": 20}] } },
-            { "label": "高雄重港", "message": "機甲與物資集散地。海上吞吐量達到巔峰。\n[ Logistics operating effectively. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 15.8, "vibes": [65, 20, 15], "jobs": [{"n": "兩棲作戰", "v": 40}, {"n": "起重裝卸", "v": 35}, {"n": "武裝押運", "v": 25}] } },
-            { "label": "新竹矽盾", "message": "量子晶片研發中心。啟動最高級別實體隔離。\n[ Quantum firewall engaged. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 8.9, "vibes": [15, 65, 20], "jobs": [{"n": "量子物理", "v": 60}, {"n": "晶片光刻", "v": 25}, {"n": "無塵巡邏", "v": 15}] } },
-            { "label": "花蓮岩隙", "message": "東部地下武裝要塞。提供 100% 抗打擊能力。\n[ Underground bunker secured. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 5.2, "vibes": [75, 15, 10], "jobs": [{"n": "地下爆破", "v": 45}, {"n": "雷達屏蔽", "v": 35}, {"n": "戰備儲糧", "v": 20}] } },
-            { "label": "台南舊都", "message": "檔案庫與備用伺服器群。正在進行數據鏡像備份。\n[ Data mirroring in progress. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 11.5, "vibes": [25, 45, 30], "jobs": [{"n": "檔案修復", "v": 50}, {"n": "遺跡發掘", "v": 30}, {"n": "文化保存", "v": 20}] } },
-            { "label": "台東航太", "message": "大氣層外載具發射場。軌道電梯正在建設中。\n[ Orbital construction ongoing. ]", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 4.6, "vibes": [55, 30, 15], "jobs": [{"n": "軌道導航", "v": 50}, {"n": "零重力適應", "v": 30}, {"n": "推進器維護", "v": 20}] } },
-            { "label": "墾丁雷達", "message": "巴士海峽監控陣列。發現不明潛水物體接近。\n[ Unknown submarine contact. ]", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 3.8, "vibes": [20, 35, 45], "jobs": [{"n": "水聲偵查", "v": 65}, {"n": "海灘巡防", "v": 20}, {"n": "熱能顯影", "v": 15}] } }
+            { "label": "台北機核", "message": "亞太區數據處理中心。系統負載率 98%。", "towerId": "d2-tower-0", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 28.5, "vibes": [45, 35, 20], "jobs": [{"n": "資訊駭客", "v": 55}, {"n": "決策中樞", "v": 30}, {"n": "特勤防護", "v": 15}] } },
+            { "label": "台中中繼站", "message": "南北能源傳輸中樞。西海岸防禦系統待命。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 16.4, "vibes": [30, 50, 20], "jobs": [{"n": "電網調配", "v": 45}, {"n": "重裝攔截", "v": 35}, {"n": "機甲保養", "v": 20}] } },
+            { "label": "高雄重港", "message": "機甲與物資集散地。海上吞吐量達到巔峰。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 15.8, "vibes": [65, 20, 15], "jobs": [{"n": "兩棲作戰", "v": 40}, {"n": "起重裝卸", "v": 35}, {"n": "武裝押運", "v": 25}] } },
+            { "label": "新竹矽盾", "message": "量子晶片研發中心。啟動最高級別實體隔離。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 8.9, "vibes": [15, 65, 20], "jobs": [{"n": "量子物理", "v": 60}, {"n": "晶片光刻", "v": 25}, {"n": "無塵巡邏", "v": 15}] } },
+            { "label": "花蓮岩隙", "message": "東部地下武裝要塞。提供 100% 抗打擊能力。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 5.2, "vibes": [75, 15, 10], "jobs": [{"n": "地下爆破", "v": 45}, {"n": "雷達屏蔽", "v": 35}, {"n": "戰備儲糧", "v": 20}] } },
+            { "label": "台南舊都", "message": "檔案庫與備用伺服器群。正在進行數據鏡像備份。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 11.5, "vibes": [25, 45, 30], "jobs": [{"n": "檔案修復", "v": 50}, {"n": "遺跡發掘", "v": 30}, {"n": "文化保存", "v": 20}] } },
+            { "label": "台東航太", "message": "大氣層外載具發射場。軌道電梯正在建設中。", "video": "https://succubusstudio.github.io/AI/13.mp4", "stats": { "pop": 4.6, "vibes": [55, 30, 15], "jobs": [{"n": "軌道導航", "v": 50}, {"n": "零重力適應", "v": 30}, {"n": "推進器維護", "v": 20}] } },
+            { "label": "墾丁雷達", "message": "巴士海峽監控陣列。發現不明潛水物體接近。", "video": "https://succubusstudio.github.io/AI/15.mp4", "stats": { "pop": 3.8, "vibes": [20, 35, 45], "jobs": [{"n": "水聲偵查", "v": 65}, {"n": "海灘巡防", "v": 20}, {"n": "熱能顯影", "v": 15}] } }
         ]
     }
 ]
 </script>
 
-<!-- ================= 3. SVG 模板庫 (未來可抽成獨立檔案) ================= -->
-<template id="map-svg-0">
+<!-- ================= 3. WebP 模板庫 (已替換成圖片疊加) ================= -->
+<template id="map-webp-0">
     <div class="map-3d">
-        <!-- 戰術多邊形愛心，共5層做出立體厚度 -->
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="100,175 75,150 45,125 25,95 20,65 35,35 65,25 90,40 100,65 110,40 135,25 165,35 180,65 175,95 155,125 125,150" fill="#000000" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="100,175 75,150 45,125 25,95 20,65 35,35 65,25 90,40 100,65 110,40 135,25 165,35 180,65 175,95 155,125 125,150" fill="#050505" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="100,175 75,150 45,125 25,95 20,65 35,35 65,25 90,40 100,65 110,40 135,25 165,35 180,65 175,95 155,125 125,150" fill="#0a0a0a" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="100,175 75,150 45,125 25,95 20,65 35,35 65,25 90,40 100,65 110,40 135,25 165,35 180,65 175,95 155,125 125,150" fill="#0f0f0f" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200">
-            <polygon points="100,175 75,150 45,125 25,95 20,65 35,35 65,25 90,40 100,65 110,40 135,25 165,35 180,65 175,95 155,125 125,150" fill="#1a1a1a" stroke="#333" stroke-width="1" stroke-linejoin="round"/>
-            <!-- 內部的科技感連線 -->
-            <path d="M 100 175 L 100 65 M 20 65 L 180 65 M 50 50 L 100 120 M 150 50 L 100 120" stroke="#222" stroke-width="0.5" />
-            
-            <!-- 重新分布在愛心內的8個節點 -->
-            <circle id="d0-point-0" class="map-point" cx="100" cy="90" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-1" class="map-point" cx="60" cy="80" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-2" class="map-point" cx="140" cy="80" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-3" class="map-point" cx="100" cy="140" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-4" class="map-point" cx="50" cy="50" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-5" class="map-point" cx="150" cy="50" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-6" class="map-point" cx="80" cy="120" r="3" fill="#ffffff" /> 
-            <circle id="d0-point-7" class="map-point" cx="120" cy="120" r="3" fill="#ffffff" /> 
-        </svg>
+        <!-- 引入你的 map1.webp，疊5層做出立體感 -->
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map1.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map1.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map1.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map1.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map1.webp">
+
+        <!-- 這裡的 left 和 top 百分比，之後你可以自己手動微調去對齊地圖上的建築 -->
+        <div id="d0-point-0" class="map-point" style="left: 50%; top: 40%;"></div>
+        <div id="d0-point-1" class="map-point" style="left: 30%; top: 45%;"></div>
+        <div id="d0-point-2" class="map-point" style="left: 70%; top: 45%;"></div>
+        <div id="d0-point-3" class="map-point" style="left: 50%; top: 75%;"></div>
+        <div id="d0-point-4" class="map-point" style="left: 25%; top: 25%;"></div>
+        <div id="d0-point-5" class="map-point" style="left: 75%; top: 25%;"></div>
+        <div id="d0-point-6" class="map-point" style="left: 40%; top: 60%;"></div>
+        <div id="d0-point-7" class="map-point" style="left: 60%; top: 60%;"></div>
         
-        <!-- 將塔的座標精準對齊到愛心的中心點 (100, 90) -->
-        <div id="d0-tower-0" class="tower-container" style="left: 50%; top: 45%;">
+        <div id="d0-tower-0" class="tower-container" style="left: 50%; top: 40%;">
             <svg class="tower-plane plane-1" viewBox="0 0 40 150"><polygon points="20,0 40,150 0,150" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="150" stroke-dasharray="2 2"/><line x1="10" y1="75" x2="30" y2="75"/></svg>
             <svg class="tower-plane plane-2" viewBox="0 0 40 150"><polygon points="20,0 40,150 0,150" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="150" stroke-dasharray="2 2"/><line x1="10" y1="75" x2="30" y2="75"/></svg>
         </div>
     </div>
 </template>
 
-<template id="map-svg-1">
+<template id="map-webp-1">
     <div class="map-3d">
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#000000" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#050505" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#0a0a0a" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#0f0f0f" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200">
-            <polygon points="148,15 158,28 150,42 142,58 138,72 128,92 118,115 108,135 98,152 92,168 88,182 82,195 72,192 68,185 75,178 68,168 78,158 85,145 92,125 98,105 105,88 112,70 118,50 128,32 138,20 144,15" fill="#1a1a1a" stroke="#333" stroke-width="1" stroke-linejoin="round"/>
-            <path d="M 148 15 L 82 195 M 128 32 L 150 42 M 105 88 L 128 92 M 85 145 L 98 152" stroke="#222" stroke-width="0.5" />
-            <circle id="d1-point-0" class="map-point" cx="108" cy="105" r="3" fill="#ffffff" /> 
-            <circle id="d1-point-1" class="map-point" cx="128" cy="55" r="3" fill="#ffffff" /> 
-            <circle id="d1-point-2" class="map-point" cx="80" cy="185" r="3" fill="#ffffff" /> 
-            <circle id="d1-point-3" class="map-point" cx="142" cy="22" r="3" fill="#ffffff" /> 
-            <circle id="d1-point-4" class="map-point" cx="102" cy="108" r="3" fill="#ffffff" /> 
-            <circle id="d1-point-5" class="map-point" cx="98" cy="125" r="3" fill="#ffffff" /> 
-            <circle id="d1-point-6" class="map-point" cx="92" cy="145" r="3" fill="#ffffff" /> 
-        </svg>
-        <div id="d1-tower-0" class="tower-container" style="left: 54%; top: 52.5%;">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map2.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map2.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map2.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map2.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map2.webp">
+
+        <div id="d1-point-0" class="map-point" style="left: 55%; top: 50%;"></div>
+        <div id="d1-point-1" class="map-point" style="left: 65%; top: 25%;"></div>
+        <div id="d1-point-2" class="map-point" style="left: 40%; top: 90%;"></div>
+        <div id="d1-point-3" class="map-point" style="left: 70%; top: 10%;"></div>
+        <div id="d1-point-4" class="map-point" style="left: 50%; top: 55%;"></div>
+        <div id="d1-point-5" class="map-point" style="left: 48%; top: 65%;"></div>
+        <div id="d1-point-6" class="map-point" style="left: 45%; top: 75%;"></div>
+        
+        <div id="d1-tower-0" class="tower-container" style="left: 55%; top: 50%;">
             <svg class="tower-plane plane-1" viewBox="0 0 40 100"><polygon points="10,0 30,0 40,100 0,100" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="100" stroke-dasharray="2 2"/></svg>
             <svg class="tower-plane plane-2" viewBox="0 0 40 100"><polygon points="10,0 30,0 40,100 0,100" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="100" stroke-dasharray="2 2"/></svg>
         </div>
     </div>
 </template>
 
-<template id="map-svg-2">
+<template id="map-webp-2">
     <div class="map-3d">
-        <svg class="map-layer" viewBox="0 0 200 200"><path d="M 25,180 L 10,120 L 15,80 L 40,25 L 100,10 L 160,25 L 185,80 L 190,120 L 175,180 L 155,170 L 170,120 L 165,85 L 145,45 L 100,30 L 55,45 L 35,85 L 30,120 L 45,170 Z M 95,190 L 95,150 L 40,165 L 80,135 L 25,115 L 80,105 L 40,65 L 85,80 L 70,30 L 100,15 L 130,30 L 115,80 L 160,65 L 120,105 L 175,115 L 120,135 L 160,165 L 105,150 L 105,190 Z" fill="#000000" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><path d="M 25,180 L 10,120 L 15,80 L 40,25 L 100,10 L 160,25 L 185,80 L 190,120 L 175,180 L 155,170 L 170,120 L 165,85 L 145,45 L 100,30 L 55,45 L 35,85 L 30,120 L 45,170 Z M 95,190 L 95,150 L 40,165 L 80,135 L 25,115 L 80,105 L 40,65 L 85,80 L 70,30 L 100,15 L 130,30 L 115,80 L 160,65 L 120,105 L 175,115 L 120,135 L 160,165 L 105,150 L 105,190 Z" fill="#050505" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><path d="M 25,180 L 10,120 L 15,80 L 40,25 L 100,10 L 160,25 L 185,80 L 190,120 L 175,180 L 155,170 L 170,120 L 165,85 L 145,45 L 100,30 L 55,45 L 35,85 L 30,120 L 45,170 Z M 95,190 L 95,150 L 40,165 L 80,135 L 25,115 L 80,105 L 40,65 L 85,80 L 70,30 L 100,15 L 130,30 L 115,80 L 160,65 L 120,105 L 175,115 L 120,135 L 160,165 L 105,150 L 105,190 Z" fill="#0a0a0a" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200"><path d="M 25,180 L 10,120 L 15,80 L 40,25 L 100,10 L 160,25 L 185,80 L 190,120 L 175,180 L 155,170 L 170,120 L 165,85 L 145,45 L 100,30 L 55,45 L 35,85 L 30,120 L 45,170 Z M 95,190 L 95,150 L 40,165 L 80,135 L 25,115 L 80,105 L 40,65 L 85,80 L 70,30 L 100,15 L 130,30 L 115,80 L 160,65 L 120,105 L 175,115 L 120,135 L 160,165 L 105,150 L 105,190 Z" fill="#0f0f0f" /></svg>
-        <svg class="map-layer" viewBox="0 0 200 200">
-            <path d="M 25,180 L 10,120 L 15,80 L 40,25 L 100,10 L 160,25 L 185,80 L 190,120 L 175,180 L 155,170 L 170,120 L 165,85 L 145,45 L 100,30 L 55,45 L 35,85 L 30,120 L 45,170 Z M 95,190 L 95,150 L 40,165 L 80,135 L 25,115 L 80,105 L 40,65 L 85,80 L 70,30 L 100,15 L 130,30 L 115,80 L 160,65 L 120,105 L 175,115 L 120,135 L 160,165 L 105,150 L 105,190 Z" fill="#1a1a1a" stroke="#333" stroke-width="1" stroke-linejoin="round"/>
-            <path d="M 100 15 L 100 190 M 10 120 L 190 120 M 40 25 L 160 165 M 160 25 L 40 165" stroke="#222" stroke-width="0.5" />
-            <circle id="d2-point-0" class="map-point" cx="100" cy="25" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-1" class="map-point" cx="52" cy="110" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-2" class="map-point" cx="60" cy="150" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-3" class="map-point" cx="62" cy="72" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-4" class="map-point" cx="147" cy="110" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-5" class="map-point" cx="100" cy="140" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-6" class="map-point" cx="140" cy="150" r="3" fill="#ffffff" /> 
-            <circle id="d2-point-7" class="map-point" cx="100" cy="180" r="3" fill="#ffffff" /> 
-        </svg>
-        <div id="d2-tower-0" class="tower-container" style="left: 50%; top: 12.5%;">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map3.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map3.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map3.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map3.webp">
+        <img class="map-layer" src="https://succubusstudio.github.io/AuspiceIsle/map3.webp">
+
+        <div id="d2-point-0" class="map-point" style="left: 50%; top: 12%;"></div>
+        <div id="d2-point-1" class="map-point" style="left: 25%; top: 55%;"></div>
+        <div id="d2-point-2" class="map-point" style="left: 30%; top: 75%;"></div>
+        <div id="d2-point-3" class="map-point" style="left: 30%; top: 35%;"></div>
+        <div id="d2-point-4" class="map-point" style="left: 75%; top: 55%;"></div>
+        <div id="d2-point-5" class="map-point" style="left: 50%; top: 70%;"></div>
+        <div id="d2-point-6" class="map-point" style="left: 70%; top: 75%;"></div>
+        <div id="d2-point-7" class="map-point" style="left: 50%; top: 90%;"></div>
+        
+        <div id="d2-tower-0" class="tower-container" style="left: 50%; top: 12%;">
             <svg class="tower-plane plane-1" viewBox="0 0 40 120"><polygon points="15,0 25,0 35,120 5,120" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="120" stroke-dasharray="2 2"/></svg>
             <svg class="tower-plane plane-2" viewBox="0 0 40 120"><polygon points="15,0 25,0 35,120 5,120" stroke-width="2"/><line x1="20" y1="0" x2="20" y2="120" stroke-dasharray="2 2"/></svg>
         </div>
@@ -365,14 +372,13 @@
 
 <!-- ================= 4. 主要邏輯 ================= -->
 <script>
-    // 1. 讀取分離出來的 JSON 資料庫
     const rawData = document.getElementById('game-data').textContent;
     const districtsData = JSON.parse(rawData);
 
-    // 2. 自動將 SVG 模板注入到地圖容器中
+    // 改為去抓 map-webp-0、1、2
     const mainMapWrapper = document.getElementById('main-map-wrapper');
     districtsData.forEach((_, index) => {
-        const tpl = document.getElementById(`map-svg-${index}`);
+        const tpl = document.getElementById(`map-webp-${index}`);
         const container = document.createElement('div');
         container.id = `map-district-${index}`;
         container.className = 'map-3d-container';
@@ -382,7 +388,7 @@
         mainMapWrapper.appendChild(container);
     });
 
-    // 3. 原本的互動邏輯 (保持不變)
+    // --- 下面的邏輯完全不需要動！ ---
     let currentDistrictIndex = 0;
     let currentLocationIndex = 0; 
     
@@ -621,7 +627,6 @@
         }
     });
 
-    // 啟動初始化
     updateMapCarousel();
     renderMenu();
 </script>
